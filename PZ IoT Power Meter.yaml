@@ -1,0 +1,840 @@
+# ==============================================
+# ЗАМЕНЫ (SUBSTITUTIONS)
+# ==============================================
+substitutions:
+  wifi_ssid: !secret wifi_ssid
+  wifi_password: !secret wifi_password
+  wifi_ssid2: !secret wifi_ssid2
+  wifi_password2: !secret wifi_password2
+  ota_password: "esphome"
+  board_name: "cb3s"
+  device_timezone: "Europe/Moscow"
+  electricity_tariff: "7.1"
+
+# ==============================================
+# ОСНОВНЫЕ НАСТРОЙКИ ESPHOME
+# ==============================================
+esphome:
+  name: pz-power-meter
+  comment: 'Digital network parameter meter PZEM 004T'
+  friendly_name: "IoT Power Meter"
+  name_add_mac_suffix: true
+  min_version: 2024.6.0
+
+# ==============================================
+# НАСТРОЙКИ ПЛАТЫ
+# ==============================================
+bk72xx:
+  board: cb3s
+  framework:
+    version: latest
+
+# ==============================================
+# ЛОГГИРОВАНИЕ
+# ==============================================
+logger:
+  level: INFO
+  initial_level: INFO
+  baud_rate: 9600
+  logs:
+    api: WARN
+    wifi: WARN
+    sensor: WARN
+    text_sensor: WARN
+    script: WARN
+    switch: WARN
+    ota: WARN
+    component: WARN
+
+# ==============================================
+# ВЕБ-СЕРВЕР
+# ==============================================
+web_server:
+  port: 80
+  version: 3
+  sorting_groups:
+    - id: group_main
+      name: "⚡ Main Parameters"
+      sorting_weight: 10
+    - id: group_energy
+      name: "📊 Energy & Cost"
+      sorting_weight: 20
+    - id: group_buttons
+      name: "🎮 Energy & Cost [Controls]"
+      sorting_weight: 25
+    - id: group_power_quality
+      name: "📈 Power Quality"
+      sorting_weight: 30
+    - id: group_meter_sync
+      name: "🔢 Meter Sync"
+      sorting_weight: 40
+    - id: group_diagnostics
+      name: "🛠️ Diagnostics"
+      sorting_weight: 50
+
+
+# ==============================================
+# ВРЕМЯ И ДАТА
+# ==============================================
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: Europe/Moscow
+    servers:
+      - 0.pool.ntp.org
+      - 1.pool.ntp.org
+      - 2.pool.ntp.org
+    update_interval: 60min
+
+  - platform: homeassistant
+    id: homeassistant_time
+    update_interval: 60min
+
+# ==============================================
+# CAPTIVE PORTAL, MDNS, API, OTA
+# ==============================================
+captive_portal:
+mdns:
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+  reboot_timeout: 0s
+
+ota:
+  platform: esphome
+  password: $ota_password
+
+safe_mode:
+
+# ==============================================
+# WI-FI
+# ==============================================
+wifi:
+  reboot_timeout: 10min
+  power_save_mode: light
+  networks:
+    - ssid: $wifi_ssid
+      password: $wifi_password
+      priority: 2
+    - ssid: $wifi_ssid2
+      password: $wifi_password2
+      priority: 1
+  ap:
+    ssid: "PZEM Meter"
+    password: "1234567890"
+    ap_timeout: 1min
+
+# ==============================================
+# UART И MODBUS
+# ==============================================
+uart:
+  id: uart_bus
+  rx_pin: RX1
+  tx_pin: TX1
+  baud_rate: 9600
+  data_bits: 8
+  stop_bits: 2
+  parity: NONE
+  rx_buffer_size: 512
+
+modbus:
+  - uart_id: uart_bus
+    id: modbus_pzem
+    send_wait_time: 500ms
+
+# ==============================================
+# ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+# ==============================================
+globals:
+  - id: daily_energy_kwh
+    type: float
+    restore_value: yes
+    initial_value: '0.0'
+  - id: weekly_energy_kwh
+    type: float
+    restore_value: yes
+    initial_value: '0.0'
+  - id: monthly_energy_kwh
+    type: float
+    restore_value: yes
+    initial_value: '0.0'
+  - id: last_reset_day
+    type: int
+    restore_value: yes
+    initial_value: '0'
+  - id: last_reset_week
+    type: int
+    restore_value: yes
+    initial_value: '0'
+  - id: last_reset_month
+    type: int
+    restore_value: yes
+    initial_value: '0'
+  - id: last_total_energy
+    type: float
+    restore_value: yes
+    initial_value: '0.0'
+  - id: meter_offset_kwh
+    type: float
+    restore_value: yes
+    initial_value: '0.0'
+
+# ==============================================
+# ИНТЕРВАЛЫ
+# ==============================================
+interval:
+  - interval: 60s
+    then:
+      - lambda: |-
+          auto time = id(homeassistant_time).now();
+          if (!time.is_valid()) {
+            return;
+          }
+          
+          float current_total = id(energy).state;
+          float energy_increment = 0;
+          
+          if (id(last_total_energy) > 0 && current_total > id(last_total_energy)) {
+            energy_increment = current_total - id(last_total_energy);
+          }
+          id(last_total_energy) = current_total;
+          
+          id(daily_energy_kwh) += energy_increment;
+          id(weekly_energy_kwh) += energy_increment;
+          id(monthly_energy_kwh) += energy_increment;
+          
+          int current_day = time.day_of_month;
+          int current_week = time.day_of_week;
+          int current_month = time.month;
+          
+          if (id(last_reset_day) != current_day) {
+            if (id(last_reset_day) != 0) {
+              ESP_LOGD("energy", "Daily energy reset");
+              id(daily_energy_kwh) = 0;
+            }
+            id(last_reset_day) = current_day;
+          }
+          
+          if (current_week == 2 && id(last_reset_week) != current_week) {
+            if (id(last_reset_week) != 0) {
+              ESP_LOGD("energy", "Weekly energy reset");
+              id(weekly_energy_kwh) = 0;
+            }
+            id(last_reset_week) = current_week;
+          }
+          
+          if (id(last_reset_month) != current_month) {
+            if (id(last_reset_month) != 0) {
+              ESP_LOGD("energy", "Monthly energy reset");
+              id(monthly_energy_kwh) = 0;
+            }
+            id(last_reset_month) = current_month;
+          }
+
+# ==============================================
+# КНОПКИ (group_buttons)
+# ==============================================
+button:
+  - platform: restart
+    name: "Restart"
+    icon: "mdi:restart"
+    entity_category: diagnostic
+    web_server:
+      sorting_group_id: group_diagnostics
+      sorting_weight: 10
+  
+  - platform: template
+    name: "Reset total energy on PZEM"
+    icon: mdi:lock-reset
+    entity_category: "config"
+    web_server:
+      sorting_group_id: group_main
+      sorting_weight: 45
+    on_press:
+      - logger.log:
+          level: INFO
+          tag: "BUTTON"
+          format: "PZEM Reset"
+      - uart.write: [0xF8, 0x42, 0x00, 0x00]
+      - delay: 200ms
+      - uart.write: [0x01, 0x42, 0xC3, 0x7E]
+      - logger.log: "Reset command sent"
+      
+  - platform: template
+    name: "Reset Daily"
+    icon: "mdi:autorenew"
+    on_press:
+      - globals.set:
+          id: daily_energy_kwh
+          value: '0.0'
+    entity_category: "config"
+    web_server:
+      sorting_group_id: group_buttons
+      sorting_weight: 30
+
+  - platform: template
+    name: "Reset Weekly"
+    icon: "mdi:autorenew"
+    on_press:
+      - globals.set:
+          id: weekly_energy_kwh
+          value: '0.0'
+    entity_category: "config"
+    web_server:
+      sorting_group_id: group_buttons
+      sorting_weight: 40
+
+  - platform: template
+    name: "Reset Monthly"
+    icon: "mdi:autorenew"
+    on_press:
+      - globals.set:
+          id: monthly_energy_kwh
+          value: '0.0'
+    entity_category: "config"
+    web_server:
+      sorting_group_id: group_buttons
+      sorting_weight: 50
+
+  - platform: template
+    name: "Reset All"
+    icon: "mdi:autorenew"
+    on_press:
+      - globals.set:
+          id: daily_energy_kwh
+          value: '0.0'
+      - globals.set:
+          id: weekly_energy_kwh
+          value: '0.0'
+      - globals.set:
+          id: monthly_energy_kwh
+          value: '0.0'
+    entity_category: "config"
+    web_server:
+      sorting_group_id: group_buttons
+      sorting_weight: 60
+
+  - platform: template
+    name: "Sync Meter Reading"
+    icon: "mdi:sync"
+    entity_category: "config"
+    web_server:
+      sorting_group_id: group_meter_sync
+      sorting_weight: 70
+    on_press:
+      then:
+        - lambda: |-
+            float pzem_energy = id(energy).state;
+            float meter_value = id(meter_reading).state;
+            float new_offset = meter_value - pzem_energy;
+            id(meter_offset_kwh) = new_offset;
+            ESP_LOGD("meter", "Synced: Meter=%.3f, PZEM=%.3f, Offset=%.3f", 
+                     meter_value, pzem_energy, new_offset);
+
+# ==============================================
+# DEBUG
+# ==============================================
+debug:
+  update_interval: 30s
+
+# ==============================================
+# ТЕКСТОВЫЕ СЕНСОРЫ (group_diagnostics)
+# ==============================================
+text_sensor:
+  - platform: debug
+    reset_reason:
+      name: "Reset Reason"
+      icon: "mdi:restart-alert"
+      entity_category: diagnostic
+      web_server:
+        sorting_group_id: group_diagnostics
+        sorting_weight: 10
+
+  - platform: libretiny
+    version:
+      name: "LibreTiny Version"
+      icon: "mdi:chip"
+      entity_category: diagnostic
+      web_server:
+        sorting_group_id: group_diagnostics
+        sorting_weight: 20
+
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+      id: ip_adr
+      icon: "mdi:ip-network"
+      entity_category: diagnostic
+      web_server:
+        sorting_group_id: group_diagnostics
+        sorting_weight: 30
+    
+    ssid:
+      name: "WiFi SSID"
+      icon: "mdi:access-point"
+      entity_category: diagnostic
+      web_server:
+        sorting_group_id: group_diagnostics
+        sorting_weight: 40
+
+    bssid:
+      name: "WiFi BSSID"
+      icon: "mdi:access-point"
+      entity_category: diagnostic
+      web_server:
+        sorting_group_id: group_diagnostics
+        sorting_weight: 50
+            
+    mac_address:
+      name: "MAC Address"
+      icon: "mdi:network"
+      entity_category: diagnostic
+      web_server:
+        sorting_group_id: group_diagnostics
+        sorting_weight: 60
+
+  - platform: template
+    name: "Date"
+    id: current_date
+    icon: "mdi:calendar"
+    lambda: |-
+      auto time = id(sntp_time).now();
+      if (!time.is_valid()) {
+        time = id(homeassistant_time).now();
+      }
+      if (time.is_valid()) {
+        char buffer[32];
+        snprintf(buffer, sizeof(buffer), "%02d.%02d.%04d",
+                 time.day_of_month, time.month, time.year);
+        return std::string(buffer);
+      }
+      return std::string("--.--.----");
+    update_interval: 10s
+    entity_category: diagnostic
+    web_server:
+      sorting_group_id: group_diagnostics
+      sorting_weight: 70
+  
+  - platform: template
+    name: "Time"
+    id: current_time_only
+    icon: "mdi:clock"
+    lambda: |-
+      auto time = id(sntp_time).now();
+      if (!time.is_valid()) {
+        return std::string("--:--:--");
+      }
+      char buffer[16];
+      snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d",
+               time.hour, time.minute, time.second);
+      return std::string(buffer);
+    update_interval: 1s
+    entity_category: diagnostic
+    web_server:
+      sorting_group_id: group_diagnostics
+      sorting_weight: 80
+
+  - platform: template
+    name: "Tariff Rate Text"
+    id: current_tariff_text
+    icon: "mdi:cash"
+    lambda: |-
+      char buffer[32];
+      snprintf(buffer, sizeof(buffer), "%.2f RUB/kWh", id(tariff_rub).state);
+      return std::string(buffer);
+    update_interval: 10s
+    entity_category: diagnostic
+    web_server:
+      sorting_group_id: group_energy
+      sorting_weight: 90
+
+# ==============================================
+# СЕНСОРЫ PZEM
+# ==============================================
+sensor:
+  # ========== MAIN PARAMETERS (group_main) ==========
+  - platform: pzemac
+    id: pzemac_1
+    modbus_id: modbus_pzem
+    address: 1
+    update_interval: 5s
+    
+    voltage:
+      id: voltage_ac
+      name: "Voltage"
+      icon: mdi:sine-wave
+      device_class: voltage
+      state_class: measurement
+      unit_of_measurement: V
+      accuracy_decimals: 1
+      filters:
+        - lambda: "return (x < 10 || x > 300) ? 0.0 : x;"
+      web_server:
+        sorting_group_id: group_main
+        sorting_weight: 10
+    
+    current:
+      id: current_ac
+      name: "Current"
+      icon: mdi:lightning-bolt-outline
+      device_class: current
+      state_class: measurement
+      unit_of_measurement: A
+      accuracy_decimals: 3
+      filters:
+        - lambda: "return (x < 0.001) ? 0.0 : x;"
+      web_server:
+        sorting_group_id: group_main
+        sorting_weight: 20
+
+    power:
+      id: power_ac
+      name: "Power"
+      accuracy_decimals: 1
+      icon: mdi:transmission-tower-export
+      device_class: power
+      state_class: measurement
+      unit_of_measurement: W
+      filters:
+        - lambda: "return (x < 0.4) ? 0.0 : x;"
+      web_server:
+        sorting_group_id: group_main
+        sorting_weight: 30                
+
+    energy:
+      id: energy
+      name: "Total Energy"
+      filters:
+        - multiply: 0.001
+      device_class: energy
+      state_class: total_increasing
+      unit_of_measurement: kWh
+      accuracy_decimals: 3
+      icon: mdi:counter
+      web_server:
+        sorting_group_id: group_main
+        sorting_weight: 40
+
+    frequency:
+      id: frequency_ac
+      name: "Frequency"
+      icon: mdi:current-ac
+      device_class: frequency
+      state_class: measurement
+      unit_of_measurement: Hz
+      accuracy_decimals: 1
+      filters:
+        - lambda: "return (x < 45 || x > 65) ? 50.0 : x;"
+      web_server:
+        sorting_group_id: group_main
+        sorting_weight: 50
+
+    power_factor:
+      id: power_factor_ac
+      name: "Power Factor"
+      icon: mdi:angle-acute
+      device_class: power_factor
+      state_class: measurement
+      accuracy_decimals: 2
+      filters:
+        - lambda: "return (x < 0 || x > 1) ? 1.0 : x;"
+      web_server:
+        sorting_group_id: group_main
+        sorting_weight: 60
+
+  # ========== POWER QUALITY (group_power_quality) ==========
+  - platform: template
+    name: "Apparent Power"
+    id: apparent_power
+    icon: mdi:flash
+    unit_of_measurement: VA
+    accuracy_decimals: 1
+    lambda: |-
+      float voltage = id(voltage_ac).state;
+      float current = id(current_ac).state;
+      if (voltage > 10 && voltage < 300 && current > 0) {
+        return voltage * current;
+      }
+      return 0.0;
+    update_interval: 10s
+    web_server:
+      sorting_group_id: group_power_quality
+      sorting_weight: 10
+    
+  - platform: template
+    name: "Reactive Power"
+    id: reactive_power
+    icon: mdi:flash-outline
+    unit_of_measurement: VAR
+    accuracy_decimals: 1
+    lambda: |-
+      float apparent = id(apparent_power).state;
+      float active = id(power_ac).state;
+      if (apparent > 0 && active <= apparent && active > 0) {
+        return sqrt(max(0.0, apparent * apparent - active * active));
+      }
+      return 0.0;
+    update_interval: 10s
+    web_server:
+      sorting_group_id: group_power_quality
+      sorting_weight: 20
+
+  # ========== ENERGY & COST (group_energy) ==========
+  - platform: template
+    name: "Daily Energy"
+    id: daily_energy
+    unit_of_measurement: kWh
+    icon: mdi:counter
+    accuracy_decimals: 2
+    update_interval: 10s
+    lambda: |-
+      return id(daily_energy_kwh);
+    web_server:
+      sorting_group_id: group_energy
+      sorting_weight: 10
+
+  - platform: template
+    name: "Weekly Energy"
+    id: weekly_energy
+    unit_of_measurement: kWh
+    icon: mdi:counter
+    accuracy_decimals: 2
+    update_interval: 10s
+    lambda: |-
+      return id(weekly_energy_kwh);
+    web_server:
+      sorting_group_id: group_energy
+      sorting_weight: 20
+
+  - platform: template
+    name: "Monthly Energy"
+    id: monthly_energy
+    unit_of_measurement: kWh
+    icon: mdi:counter
+    accuracy_decimals: 2
+    update_interval: 10s
+    lambda: |-
+      return id(monthly_energy_kwh);
+    web_server:
+      sorting_group_id: group_energy
+      sorting_weight: 30
+
+  - platform: template
+    name: "Daily Cost"
+    id: daily_cost
+    unit_of_measurement: RUB
+    icon: mdi:currency-rub
+    accuracy_decimals: 2
+    update_interval: 10s
+    lambda: |-
+      return id(daily_energy_kwh) * id(tariff_rub).state;
+    web_server:
+      sorting_group_id: group_energy
+      sorting_weight: 40
+
+  - platform: template
+    name: "Weekly Cost"
+    id: weekly_cost
+    unit_of_measurement: RUB
+    icon: mdi:currency-rub
+    accuracy_decimals: 2
+    update_interval: 10s
+    lambda: |-
+      return id(weekly_energy_kwh) * id(tariff_rub).state;
+    web_server:
+      sorting_group_id: group_energy
+      sorting_weight: 50
+
+  - platform: template
+    name: "Monthly Cost"
+    id: monthly_cost
+    unit_of_measurement: RUB
+    icon: mdi:currency-rub
+    accuracy_decimals: 2
+    update_interval: 10s
+    lambda: |-
+      return id(monthly_energy_kwh) * id(tariff_rub).state;
+    web_server:
+      sorting_group_id: group_energy
+      sorting_weight: 60
+
+  - platform: template
+    name: "Energy Cost"
+    id: energy_cost
+    icon: mdi:cash
+    unit_of_measurement: RUB
+    accuracy_decimals: 2
+    lambda: |-
+      float energy_val = id(energy).state;
+      float tariff = id(tariff_rub).state;
+      return energy_val * tariff;
+    update_interval: 60s
+    web_server:
+      sorting_group_id: group_energy
+      sorting_weight: 70
+
+  - platform: template
+    name: "Monthly Forecast"
+    id: monthly_forecast
+    icon: mdi:calendar-clock
+    unit_of_measurement: kWh
+    accuracy_decimals: 1
+    lambda: |-
+      float uptime = id(uptime_sensor).state * 86400.0;
+      float energy_val = id(energy).state;
+      if (uptime > 3600 && energy_val > 0) {
+        float hours = uptime / 3600.0;
+        float avg_power_kw = energy_val / hours;
+        return avg_power_kw * 24 * 30;
+      }
+      return 0.0;
+    update_interval: 300s
+    web_server:
+      sorting_group_id: group_energy
+      sorting_weight: 80
+
+  # ========== METER SYNC (group_meter_sync) ==========
+  - platform: template
+    name: "Synced Meter Reading"
+    id: synced_meter_reading
+    unit_of_measurement: kWh
+    icon: mdi:counter
+    accuracy_decimals: 3
+    update_interval: 10s
+    lambda: |-
+      float pzem = id(energy).state;
+      float offset = id(meter_offset_kwh);
+      return pzem + offset;
+    web_server:
+      sorting_group_id: group_meter_sync
+      sorting_weight: 10
+
+  # ========== DIAGNOSTICS (group_diagnostics) ==========
+  - platform: uptime
+    name: "Uptime"
+    id: uptime_sensor
+    icon: mdi:clock-outline
+    entity_category: diagnostic
+    unit_of_measurement: "days"
+    accuracy_decimals: 2
+    filters:
+      - lambda: return x / 86400.0;
+    web_server:
+      sorting_group_id: group_diagnostics
+      sorting_weight: 100
+
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    id: wf_signal
+    icon: mdi:wifi
+    update_interval: 60s
+    entity_category: diagnostic
+    unit_of_measurement: dBm
+    web_server:
+      sorting_group_id: group_diagnostics
+      sorting_weight: 110
+
+# ==============================================
+# БИНАРНЫЕ СЕНСОРЫ (group_main)
+# ==============================================
+binary_sensor:
+  - platform: template
+    name: "Load Connected"
+    id: load_detected
+    icon: mdi:power-plug
+    entity_category: diagnostic
+    lambda: |-
+      return id(current_ac).state > 0.1;
+    device_class: power
+    filters:
+      - delayed_on: 2s
+      - delayed_off: 5s
+    web_server:
+      sorting_group_id: group_main
+      sorting_weight: 70
+
+  - platform: template
+    name: "Overload"
+    id: overload
+    icon: mdi:alert
+    entity_category: diagnostic
+    lambda: |-
+      return id(power_ac).state > 2000;
+    device_class: problem
+    filters:
+      - delayed_on: 10s
+    web_server:
+      sorting_group_id: group_main
+      sorting_weight: 80
+
+  - platform: template
+    name: "Low Power Factor"
+    id: low_pf
+    icon: mdi:angle-acute
+    entity_category: diagnostic
+    lambda: |-
+      float pf = id(power_factor_ac).state;
+      return pf > 0 && pf < 0.8;
+    device_class: problem
+    web_server:
+      sorting_group_id: group_main
+      sorting_weight: 90
+
+# ==============================================
+# NUMBER (group_energy и group_meter_sync)
+# ==============================================
+number:
+  - platform: template
+    name: "Tariff Rate"
+    id: tariff_rub
+    unit_of_measurement: RUB/kWh
+    icon: mdi:cash
+    min_value: 1.0
+    max_value: 20.0
+    step: 0.01
+    mode: box
+    optimistic: true
+    initial_value: $electricity_tariff
+    restore_value: true
+    entity_category: config
+    web_server:
+      sorting_group_id: group_energy
+      sorting_weight: 100
+    set_action:
+      then:
+        - lambda: |-
+            ESP_LOGD("tariff", "Tariff set to: %.2f RUB/kWh", x);
+
+  - platform: template
+    name: "Meter Reading"
+    id: meter_reading
+    unit_of_measurement: kWh
+    icon: mdi:counter
+    min_value: 0.0
+    max_value: 999999.9
+    step: 0.001
+    mode: box
+    optimistic: true
+    initial_value: '0.0'
+    restore_value: true
+    entity_category: config
+    web_server:
+      sorting_group_id: group_meter_sync
+      sorting_weight: 20
+    set_action:
+      then:
+        - lambda: |-
+            ESP_LOGD("meter", "Meter reading saved: %.3f kWh", x);
+
+# ==============================================
+# SELECT (group_diagnostics)
+# ==============================================
+select:
+  - platform: logger
+    name: "Log Level"
+    icon: "mdi:format-list-bulleted"
+    entity_category: diagnostic
+    web_server:
+      sorting_group_id: group_diagnostics
+      sorting_weight: 120
