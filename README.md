@@ -62,7 +62,8 @@ sensor:
       name: "PZEM-004T V3 Power Factor"
     update_interval: 60s
 ```
-Оригинал по ссылке [Тык](https://esphome.io/components/sensor/pzemac/)
+Оригинал по ссылке [Тык](https://esphome.io/components/sensor/pzemac/).
+
 Конфигурация построена на возможностях ESPHome и включает в себя ряд продуманных решений:
 
 - **Modbus‑связь**: используются компоненты `modbus` и `uart` для обмена данными с PZEM‑004T на скорости 9600 бод.
