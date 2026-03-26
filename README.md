@@ -42,7 +42,27 @@ RX PZEM-004T → TX1 микроконтроллера
 ---
 
 ## 📂 Особенности конфигурации
+В качестве основы для построения конфигурации использовался стандартный конфиг для обьявления сенсоров: 
+```yaml
+modbus:
 
+sensor:
+  - platform: pzemac
+    current:
+      name: "PZEM-004T V3 Current"
+    voltage:
+      name: "PZEM-004T V3 Voltage"
+    energy:
+      name: "PZEM-004T V3 Energy"
+    power:
+      name: "PZEM-004T V3 Power"
+    frequency:
+      name: "PZEM-004T V3 Frequency"
+    power_factor:
+      name: "PZEM-004T V3 Power Factor"
+    update_interval: 60s
+```
+Оригинал по ссылке [Тык](https://esphome.io/components/sensor/pzemac/)
 Конфигурация построена на возможностях ESPHome и включает в себя ряд продуманных решений:
 
 - **Modbus‑связь**: используются компоненты `modbus` и `uart` для обмена данными с PZEM‑004T на скорости 9600 бод.
