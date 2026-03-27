@@ -94,7 +94,8 @@ The configuration is built on ESPHome capabilities and includes a number of well
 - **Convenient web interface:** all sensors and controls are divided into logical groups in the web server: main parameters, energy and cost, power quality, diagnostics, etc.
 - **Spike protection:** filters have been added for all sensors to discard incorrect readings (for example, voltage 0 V or frequency 100 Hz).
 
-🚀 Getting Started
+## 🚀Getting Started
+
 1. **Install ESPHome:** if you haven’t done it yet, install ESPHome (dashboard or command line).
 
 2. **Copy the configuration:** take the ready-made YAML file from this repository.
@@ -116,10 +117,11 @@ api_encryption_key: "Generated encryption key"
 
 6. **Open the web interface:** after connecting to Wi‑Fi, open the device IP address in your browser.
 
-🔗 Home Assistant Integration
+## 🔗Home Assistant Integration
 The device integrates fully and seamlessly with Home Assistant thanks to the native ESPHome API.
 
-⁉️ Possible Difficulties You May Encounter
-❗Since in my configuration the device is based on CB3S (BK7231), the question will arise: how to flash it, because you will not be able to do this using ESPHome Flasher! In this case, you need to install BK7231Flasher or ltchiptool, and flash it via UART using one of them. After flashing, further updates will be possible through the web interface via OTA. To avoid compiling the firmware yourself, I have included ready-made flashing files in the Firmware folder.
+## ⁉️Possible Difficulties You May Encounter
 
-❗Another difficulty may arise during firmware compilation due to the hardware limitations of the device you are compiling on (for example, on my Raspberry Pi 4 with 4GB RAM, compilation ended with an error). The solution is as follows: you need a PC (or laptop, mini PC) with a sufficient amount of RAM (in my case Ryzen R5 5600X with 16GB, i5 12400 with 64GB — on these configurations everything compiles without problems). Install Docker Desktop on the device, then deploy an ESPHome container in Docker, and from there edit the config and compile the firmware file.
+-  ❗Since in my configuration the device is based on CB3S (BK7231), the question will arise: how to flash it, because you will not be able to do this using ESPHome Flasher! In this case, you need to install BK7231Flasher or ltchiptool, and flash it via UART using one of them. After flashing, further updates will be possible through the web interface via OTA. To avoid compiling the firmware yourself, I have included ready-made flashing files in the Firmware folder.
+
+-  ❗Another difficulty may arise during firmware compilation due to the hardware limitations of the device you are compiling on (for example, on my Raspberry Pi 4 with 4GB RAM, compilation ended with an error). The solution is as follows: you need a PC (or laptop, mini PC) with a sufficient amount of RAM (in my case Ryzen R5 5600X with 16GB, i5 12400 with 64GB — on these configurations everything compiles without problems). Install Docker Desktop on the device, then deploy an ESPHome container in Docker, and from there edit the config and compile the firmware file.
