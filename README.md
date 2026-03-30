@@ -156,25 +156,17 @@ sensor:
 -  Делее пример того как конфигурациия выглядит в `Home assistent` и как выглядит напрямую через `WEB`.
 
 <details>
-<summary><b>🖥️ Нажмите, чтобы открыть примеры интерфейсов</b></summary>
+<summary><b>🖥️ Нажмите, чтобы увидеть скриншоты интерфейсов</b></summary>
 <br>
 
 <div align="center">
   
-  **Home Assistant**
+  | Home Assistant | Веб-интерфейс |
+  |:--------------:|:-------------:|
+  | ![HASS](img/HASS_example.png) | ![WEB](img/WEB_example.png) |
   
-  ![Home Assistant Example](img/HASS_example.png)
-  
-  <br><br>
-  
-  **Веб-интерфейс**
-  
-  ![WEB Interface Example](img/WEB_example.png)
-  
-  <br>
-  
-  *Интерфейсы для мониторинга электроэнергии*
-  
+  *Слева — интеграция с Home Assistant, справа — встроенный веб-сервер*
+
 </div>
 
 </details>
