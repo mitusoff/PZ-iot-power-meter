@@ -44,7 +44,7 @@ Thumbs.db
 *.dump
 *.core
 
-# PlatformIO (если используется)
+# PlatformIO
 .pio/
 .pioenvs/
 .piolibdeps/
