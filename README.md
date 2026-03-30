@@ -127,7 +127,12 @@ sensor:
 ## 🔗 Интеграция с Home Assistant
 
 Устройство полностью и без проблем интегрируется с Home Assistant. Благодаря использованию нативного API ESPHome
+-  Делее пример того как конфигурациия выглядит в `home assistent` и как выглядит напрямую через `WEB`.
+![Home Assistent Example](img/HASS_example.png)
 
+---
+
+![WEB Interface Example](img/WEB_example.png)
 ---
 
 ## ⁉️ Возможные трудности которые могут возникнуть
