@@ -156,7 +156,7 @@ sensor:
 -  Делее пример того как конфигурациия выглядит в `Home assistent` и как выглядит напрямую через `WEB`.
 
 <details>
-<summary><b><span style="color: red;"> 👉 Нажмите, чтобы увидеть скриншоты интерфейсов</span></b></summary>
+<summary><b>🔴 <span style="color: red;">Нажмите, чтобы увидеть скриншоты интерфейсов</span></b></summary>
 <br>
 
 <div align="center">
