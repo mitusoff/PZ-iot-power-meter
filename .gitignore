@@ -1,0 +1,61 @@
+# ESPHome сгенерированные файлы
+config/
+*.yaml.bak
+*.yaml.old
+*.yml.bak
+*.yml.old
+*.pem
+*.crt
+*.key
+
+# Скомпилированные прошивки
+*.bin
+*.elf
+*.hex
+*.uf2
+*.rbl
+*.ota
+
+# Временные файлы ESPHome
+.esphome/
+build/
+__pycache__/
+*.pyc
+*.pyo
+
+# Файлы с секретами 
+secrets.yaml
+!secrets.example.yaml
+.env
+*.secret
+*_secret.yaml
+
+# IDE и редакторы
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Логи и дампы
+*.log
+*.dump
+*.core
+
+# PlatformIO (если используется)
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Python виртуальное окружение
+venv/
+env/
+ENV/
+.venv/
+
+# Резервные копии
+*.backup
+*.old
+*.orig
