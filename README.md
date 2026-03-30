@@ -174,7 +174,7 @@ sensor:
 ## 📸 Примеры готового устройства
 
 <details>
-<summary><b><span style="color: red;"> 👉🖼️ Нажмите, чтобы открыть галерею (9 фотографий)</b></summary>
+<summary><b>🔴 <span style="color: red;">Нажмите, чтобы открыть галерею (9 фотографий)</span></b></summary>
 <br>
 
 <div align="center">
