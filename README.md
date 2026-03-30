@@ -15,7 +15,9 @@
 - [🚀 Начало работы](#-начало-работы)
 - [🔗 Интеграция с Home Assistant](#-интеграция-с-home-assistant)
 - [📱 Примеры интерфейса HA и WEB](#-примеры-интерфейса-ha-и-web)
+- [📸 Примеры готового устройства](#️-примеры-готового-устройства)
 - [⁉️ Возможные трудности](#️-возможные-трудности)
+
 
 # 👓 Обзор проекта
 
@@ -159,6 +161,37 @@ sensor:
 
 ![WEB Interface Example](img/WEB_example.png)
 ---
+
+## 📸 Примеры готового устройства
+
+<details>
+<summary><b>🖼️ Нажмите, чтобы открыть галерею (9 фотографий)</b></summary>
+<br>
+
+<div align="center">
+  <img src="img/example-of-a-finished-device/pz-iot(1).png" width="45%">
+  <img src="img/example-of-a-finished-device/pz-iot(2).png" width="45%">
+  <br><br>
+  <img src="img/example-of-a-finished-device/pz-iot(3).png" width="45%">
+  <img src="img/example-of-a-finished-device/pz-iot(4).png" width="45%">
+  <br><br>
+  <img src="img/example-of-a-finished-device/pz-iot(5).png" width="45%">
+  <img src="img/example-of-a-finished-device/pz-iot(6).png" width="45%">
+  <br><br>
+  <img src="img/example-of-a-finished-device/pz-iot(7).png" width="45%">
+  <img src="img/example-of-a-finished-device/pz-iot(8).png" width="45%">
+  <br><br>
+  <img src="img/example-of-a-finished-device/pz-iot(9).png" width="45%">
+</div>
+
+<br>
+<p align="center">
+  <a href="img/example-of-a-finished-device">
+    <b>📂 Открыть папку со всеми фотографиями</b>
+  </a>
+</p>
+
+</details>
 
 ## ⁉️ Возможные трудности
 
